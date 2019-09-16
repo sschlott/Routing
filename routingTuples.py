@@ -23,9 +23,11 @@ class RoutingTable:
         """
         self.name = name
         self.rTable = [(name,0,name)]
-        self.numUpdates = 0
+        self.localTime = 1
+        self.lastUpdated = 1 
         self.neighbors = []
-        self.ticksToTimeout = 30
+        self.ticksToTimeout = 20
+        self.isActive = True
     def removeUnresponsive(self):
         ''''''
 
@@ -55,42 +57,40 @@ class RoutingTable:
         for val in self.rTable:
             if val[0] == destination:
                 return val[2]
-                #There is most certainly a bug here
-        for val in self.rTable:
-            if val[0] == destination:
-                if val[1] == 1 or val[1] ==0:
-                    return val[0]
-                else: 
-                    self.getBestLink(val[2])
 
-
-
+    def checkOnNeighbors(self):
+        for table in self.neighbors:
+            if self.localTime - table.lastUpdated <= self.ticksToTimeout:
+                table.isActive = False
     def update(self, source, table):
         """
         Updates this routing table based on the routing message just
         received from the node whose name is given by source.  The table
         parameter is the current RoutingTable object for the source.
         """
-        self.numUpdates += 1
-        hop_adjustment = self.getHopCount(source)
-        for (k,v,s) in table.rTable:
-            print(table.rTable,v,hop_adjustment, "!!!!!!")
+        if table not in self.neighbors:
+            self.neighbors.append(table)
+        self.localTime += 1
+        self.lastUpdated = self.localTime
+
+        self.checkOnNeighbors()
+        table.isActive= True
+        print(time,self.name)
+        hop_adjustment = 1
+        for (k,v,_s) in table.rTable:
             adjusted = hop_adjustment+v
             if k in self.getNodeNames():
                 if self.getHopCount(k) >adjusted:
                     for val in self.rTable:
                         if val[0] == k: 
+                            # print("Replacing", k,adjusted, source)
                             self.rTable.remove(val)
-                    print(v,hop_adjustment, "!!!!!!!!!!!!")
-                    self.rTable.append((k,adjusted,s))
-                    print("Replacing", k,adjusted,s)
-                else:
-                    print("Keeping original")
+
+                    self.rTable.append((k,adjusted,source))
                 #Check who has the better route, update source node if nec
             else:
-                self.rTable.append((k,adjusted,s))
-                print("Adding", k,adjusted,s)
-
+                self.rTable.append((k,adjusted,source))
+                # print("Adding", k,adjusted,source)
 
 # x= RoutingTable('a')
 # x.rTable.append(('d',6,'a'))
