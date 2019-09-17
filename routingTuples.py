@@ -25,7 +25,7 @@ class RoutingTable:
         self.rTable = [(name,0,name)]
         self.localTime = 1
         self.lastUpdated = 1 
-        self.neighbors = []
+        self.neighbors = {}
         self.ticksToTimeout = 20
         self.isActive = True
     def removeUnresponsive(self):
@@ -56,11 +56,17 @@ class RoutingTable:
         #Find the potential neighbors of your starting node
         for val in self.rTable:
             if val[0] == destination:
-                return val[2]
+                if val[2] in self.neighbors.keys() and self.neighbors[val[2]].isActive:
+                    print("everything is fine for" ,self.name, self.neighbors[val[2]].name)
+                    return val[2]
+                else: 
+                    print("FUCK", self.name,self.neighbors.keys())
+
 
     def checkOnNeighbors(self):
-        for table in self.neighbors:
-            if self.localTime - table.lastUpdated <= self.ticksToTimeout:
+        for table in self.neighbors.values():
+            if self.localTime - table.lastUpdated > self.ticksToTimeout:
+                print("Oh fuck, we've lost", table.name, "Now what will", self.name, "do?")
                 table.isActive = False
     def update(self, source, table):
         """
@@ -69,13 +75,13 @@ class RoutingTable:
         parameter is the current RoutingTable object for the source.
         """
         if table not in self.neighbors:
-            self.neighbors.append(table)
+            self.neighbors[source] = table
         self.localTime += 1
         self.lastUpdated = self.localTime
 
         self.checkOnNeighbors()
         table.isActive= True
-        print(time,self.name)
+        # print(self.localTime,self.name)
         hop_adjustment = 1
         for (k,v,_s) in table.rTable:
             adjusted = hop_adjustment+v
