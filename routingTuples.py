@@ -24,12 +24,10 @@ class RoutingTable:
         self.name = name
         self.rTable = [(name,0,name)]
         self.localTime = 1
-        self.lastUpdated = 1 
+        self.lastUpdated = {}
         self.neighbors = {}
-        self.ticksToTimeout = 20
+        self.ticksToTimeout = 30
         self.isActive = True
-    def removeUnresponsive(self):
-        ''''''
 
     def getNodeNames(self):
         """
@@ -44,9 +42,16 @@ class RoutingTable:
         """
         Returns the hop count from this node to the destination node.
         """
-        for val in self.rTable:
-            if val[0] == destination:
-                return val[1]
+        #breaks for pt 3
+        if self.name == 'HARV' and self.localTime >= 20:
+            return 0
+        else: 
+            for val in self.rTable:
+                if val[0] == destination:
+                    if self.name == 'HARV' and self.localTime >= 20:
+                        return 0
+                    else:
+                        return val[1]
 
 
     def getBestLink(self, destination):
@@ -56,18 +61,23 @@ class RoutingTable:
         #Find the potential neighbors of your starting node
         for val in self.rTable:
             if val[0] == destination:
-                if val[2] in self.neighbors.keys() and self.neighbors[val[2]].isActive:
-                    print("everything is fine for" ,self.name, self.neighbors[val[2]].name)
-                    return val[2]
-                else: 
-                    print("FUCK", self.name,self.neighbors.keys())
-
+                if val[2] in self.neighbors.keys():
+                    if self.neighbors[val[2]].isActive:
+                        return val[2]
+                    else:
+                        #updates table if inactive node is still present
+                        self.rTable.remove(val)
 
     def checkOnNeighbors(self):
         for table in self.neighbors.values():
-            if self.localTime - table.lastUpdated > self.ticksToTimeout:
-                print("Oh fuck, we've lost", table.name, "Now what will", self.name, "do?")
-                table.isActive = False
+            if self.localTime - self.lastUpdated[table.name] > self.ticksToTimeout:
+                # Removes unresponsive nodes from table
+                for val in self.rTable:
+                    if val[0] == table.name:
+                        self.rTable.remove(val)
+                        table.isActive = False
+
+
     def update(self, source, table):
         """
         Updates this routing table based on the routing message just
@@ -76,12 +86,13 @@ class RoutingTable:
         """
         if table not in self.neighbors:
             self.neighbors[source] = table
+            #Adds any missing neighbors to my table's list
         self.localTime += 1
-        self.lastUpdated = self.localTime
-
+        #updates my table's local time
+        self.lastUpdated[source]=self.localTime
+        #Changes neighbor table's last updated to my local time (since it just checked in)
         self.checkOnNeighbors()
-        table.isActive= True
-        # print(self.localTime,self.name)
+
         hop_adjustment = 1
         for (k,v,_s) in table.rTable:
             adjusted = hop_adjustment+v
@@ -89,39 +100,10 @@ class RoutingTable:
                 if self.getHopCount(k) >adjusted:
                     for val in self.rTable:
                         if val[0] == k: 
-                            # print("Replacing", k,adjusted, source)
                             self.rTable.remove(val)
 
                     self.rTable.append((k,adjusted,source))
                 #Check who has the better route, update source node if nec
             else:
                 self.rTable.append((k,adjusted,source))
-                # print("Adding", k,adjusted,source)
 
-# x= RoutingTable('a')
-# x.rTable.append(('d',6,'a'))
-# x.rTable.append(('e',5,'a'))
-# x.rTable.append(('b',1,'a'))
-# x.rTable.append(('c',9,'a'))
-
-# x.rTable.append(('f',7,'a'))
-# x.rTable.append(('g',10,'a'))
-# yy= RoutingTable('b')
-# yy.rTable.append(('b',0,'b'))
-# yy.rTable.append(('a',1,'b'))
-# yy.rTable.append(('c',2,'b'))
-# yy.rTable.append(('d',7,'b'))
-# yy.rTable.append(('e',5,'b'))
-
-# print(x.rTable)
-# x.update('b',yy.rTable)
-# print(x.rTable)
-
-
-#def optimal(self)
-#    for node with 1 hops = next best jump
-#    if node has 0 hops = You have arrived 
-#0 hops is the optimal to get to oneself
-#You must follow a pth of 1 hop every time
-#How do we determinewhich diection to take? 
-#min ( neighbor1.table(destination.hops) vs neighbor2.table.destination.hops)
