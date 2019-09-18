@@ -6,6 +6,9 @@ Your job in this assignment is to implement the RoutingTable class so
 its methods implement the functionality described in the comments.
 """
 
+######TASK: PROPAGTE BAD LINKS TO ENTIRE CO
+
+
 class RoutingTable:
 
     """
@@ -22,10 +25,10 @@ class RoutingTable:
         Third value in tuple indicates best path source for a node
         """
         self.name = name
-        self.rTable = [(name,0,name)]
+        self.rTable = [(name,0,name)] #name, hops, best link
         self.localTime = 1
-        self.lastUpdated = {}
-        self.neighbors = {}
+        self.lastUpdated = {} #{nodename:localtimewhenitlastupdatedme}
+        self.neighbors = {} #{name:rTable(object)}
         self.ticksToTimeout = 30
         self.isActive = True
 
@@ -43,15 +46,15 @@ class RoutingTable:
         Returns the hop count from this node to the destination node.
         """
         #breaks for pt 3
-        if self.name == 'HARV' and self.localTime >= 20:
-            return 0
-        else: 
-            for val in self.rTable:
-                if val[0] == destination:
-                    if self.name == 'HARV' and self.localTime >= 20:
-                        return 0
-                    else:
-                        return val[1]
+        # if self.name == 'HARV' and self.localTime >= 20:
+        #     return 0
+        # else: 
+        for val in self.rTable:
+            if val[0] == destination:
+                # if self.name == 'HARV' and self.localTime >= 20:
+                #     return 0
+                # else:
+                    return val[1]
 
 
     def getBestLink(self, destination):
@@ -64,9 +67,10 @@ class RoutingTable:
                 if val[2] in self.neighbors.keys():
                     if self.neighbors[val[2]].isActive:
                         return val[2]
-                    else:
+                    else: #this node is inactive
                         #updates table if inactive node is still present
                         self.rTable.remove(val)
+                        self.removeInactivePath()
 
     def checkOnNeighbors(self):
         for table in self.neighbors.values():
@@ -76,6 +80,20 @@ class RoutingTable:
                     if val[0] == table.name:
                         self.rTable.remove(val)
                         table.isActive = False
+                        self.removeInactivePath()
+
+    def removeInactivePath(self):
+        '''
+        When self(an inactive node)/table is discovered, remove all references to it
+        When a node is Inactive, check that node's neighbors for references to that node
+        If neighbors rely on a node that is flagged as unusable
+            remove references along path to that node (i.e. if val[2] = part of that path)
+        '''
+        for neighbor in self.neighbors.values():
+            for val in neighbor.rTable:
+                    if val[2] == self.name:
+                        neighbor.rTable.remove(val)
+                        neighbor.removeInactivePath()
 
 
     def update(self, source, table):
