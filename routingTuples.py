@@ -54,7 +54,7 @@ class RoutingTable:
                 # if self.name == 'HARV' and self.localTime >= 20:
                 #     return 0
                 # else:
-                    return val[1]
+                return val[1]
 
 
     def getBestLink(self, destination):
@@ -74,6 +74,7 @@ class RoutingTable:
 
     def checkOnNeighbors(self):
         for table in self.neighbors.values():
+            flagged = []
             if self.localTime - self.lastUpdated[table.name] > self.ticksToTimeout:
                 # Removes unresponsive nodes from table
                 for val in self.rTable:
@@ -81,6 +82,9 @@ class RoutingTable:
                         self.rTable.remove(val)
                         table.isActive = False
                         self.removeInactivePath()
+                        flagged.append(table.name)
+        for badname in flagged:
+            del self.neighbors[badname]
 
     def removeInactivePath(self):
         '''
@@ -124,4 +128,5 @@ class RoutingTable:
                 #Check who has the better route, update source node if nec
             else:
                 self.rTable.append((k,adjusted,source))
+        
 
