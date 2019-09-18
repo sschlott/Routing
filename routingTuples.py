@@ -73,8 +73,9 @@ class RoutingTable:
                         self.removeInactivePath()
 
     def checkOnNeighbors(self):
+        #evaluates if any neighbors are timed out
+        flagged = []
         for table in self.neighbors.values():
-            flagged = []
             if self.localTime - self.lastUpdated[table.name] > self.ticksToTimeout:
                 # Removes unresponsive nodes from table
                 for val in self.rTable:
@@ -84,13 +85,14 @@ class RoutingTable:
                         self.removeInactivePath()
                         flagged.append(table.name)
         for badname in flagged:
+            #considers inactive neighbors as nonexistant until they update you again
             del self.neighbors[badname]
 
     def removeInactivePath(self):
         '''
         When self(an inactive node)/table is discovered, remove all references to it
         When a node is Inactive, check that node's neighbors for references to that node
-        If neighbors rely on a node that is flagged as unusable
+        If neighbors rely on a node that is unusable as well so we call again
             remove references along path to that node (i.e. if val[2] = part of that path)
         '''
         for neighbor in self.neighbors.values():
@@ -114,6 +116,7 @@ class RoutingTable:
         self.lastUpdated[source]=self.localTime
         #Changes neighbor table's last updated to my local time (since it just checked in)
         self.checkOnNeighbors()
+        print(self.rTable)
 
         hop_adjustment = 1
         for (k,v,_s) in table.rTable:
@@ -128,5 +131,5 @@ class RoutingTable:
                 #Check who has the better route, update source node if nec
             else:
                 self.rTable.append((k,adjusted,source))
-        
+
 
