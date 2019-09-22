@@ -28,9 +28,9 @@ class RoutingTable:
         self.rTable = [(name,0,name)] #name, hops, best link
         self.localTime = 1
         self.lastUpdated = {} #{nodename:localtimewhenitlastupdatedme}
-        self.neighbors = {} #{name:rTable(object)}
-        self.ticksToTimeout = 30
-        self.isActive = True
+        self.neighbors = {} #{name:routing_table(object)}
+        self.ticksToTimeout = 10
+
 
     def getNodeNames(self):
         """
@@ -45,35 +45,29 @@ class RoutingTable:
         """
         Returns the hop count from this node to the destination node.
         """
-        #breaks for pt 3
-        # if self.name == 'HARV' and self.localTime >= 20:
-        #     return 0
-        # else: 
+        #breaks for pt 3, changes all routing in harv's table to 0
+        if self.name == 'HARV' and self.localTime >= 20:
+            for val in self.rTable:
+                if val[0] == destination:
+                    temp = val[2]
+                    self.rTable.remove(val)
+            self.rTable.append((destination,0,temp))
         for val in self.rTable:
             if val[0] == destination:
-                # if self.name == 'HARV' and self.localTime >= 20:
-                #     return 0
-                # else:
-                return val[1]
+                    return val[1]
 
 
     def getBestLink(self, destination):
         """
         Returns the name of the first node on the path to destination.
         """
-        #Find the potential neighbors of your starting node
         for val in self.rTable:
             if val[0] == destination:
                 if val[2] in self.neighbors.keys():
-                    if self.neighbors[val[2]].isActive:
-                        return val[2]
-                    else: #this node is inactive
-                        #updates table if inactive node is still present
-                        self.rTable.remove(val)
-                        self.removeInactivePath()
+                    return val[2] 
 
     def checkOnNeighbors(self):
-        #evaluates if any neighbors are timed out
+        #evaluates if any neighbors are timed out, removes inactive neighbors
         flagged = []
         for table in self.neighbors.values():
             if self.localTime - self.lastUpdated[table.name] > self.ticksToTimeout:
@@ -81,11 +75,10 @@ class RoutingTable:
                 for val in self.rTable:
                     if val[0] == table.name:
                         self.rTable.remove(val)
-                        table.isActive = False
                         self.removeInactivePath()
                         flagged.append(table.name)
+        #considers inactive neighbors as nonexistant until they update you again
         for badname in flagged:
-            #considers inactive neighbors as nonexistant until they update you again
             del self.neighbors[badname]
 
     def removeInactivePath(self):
@@ -108,28 +101,22 @@ class RoutingTable:
         received from the node whose name is given by source.  The table
         parameter is the current RoutingTable object for the source.
         """
+        #Adds any missing neighbors to my table's list
         if table not in self.neighbors:
             self.neighbors[source] = table
-            #Adds any missing neighbors to my table's list
+        #Changes neighbor table's last updated to my local time (since it just checked in)  
         self.localTime += 1
-        #updates my table's local time
         self.lastUpdated[source]=self.localTime
-        #Changes neighbor table's last updated to my local time (since it just checked in)
         self.checkOnNeighbors()
-        print(self.rTable)
-
-        hop_adjustment = 1
-        for (k,v,_s) in table.rTable:
+        hop_adjustment = 1 #Since all updaters are neighbors this is always 1
+        for (k,v,s) in table.rTable:
             adjusted = hop_adjustment+v
             if k in self.getNodeNames():
-                if self.getHopCount(k) >adjusted:
+                if self.getHopCount(k)>adjusted:
                     for val in self.rTable:
-                        if val[0] == k: 
+                        if k == val[0]:
                             self.rTable.remove(val)
-
                     self.rTable.append((k,adjusted,source))
-                #Check who has the better route, update source node if nec
             else:
                 self.rTable.append((k,adjusted,source))
-
 
