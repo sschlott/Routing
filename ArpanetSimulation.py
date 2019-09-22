@@ -5,7 +5,7 @@ This file creates a graphical simulation of the early ARPANET.
 """
 
 from arpanet import ArpanetGraph, ArpanetNode, ArpanetMonitor
-from routingTuples import RoutingTable
+from routing import RoutingTable
 from pgl import GWindow, GLabel, GLine
 
 # Constants
